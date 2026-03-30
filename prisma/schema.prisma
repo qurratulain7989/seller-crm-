@@ -19,6 +19,7 @@ model User {
   customers Customer[]
   sessions  Session[]
   accounts  Account[]
+  expenses  Expense[]
 }
 
 model Customer {
@@ -57,6 +58,19 @@ model Order {
   customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([customerId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String?
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {

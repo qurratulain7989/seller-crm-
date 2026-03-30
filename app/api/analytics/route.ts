@@ -88,15 +88,29 @@ export async function GET(req: NextRequest) {
   const totalRevenue = allCustomers.reduce((s, c) => s + c.totalPurchase, 0);
   const totalProfit = allCustomers.reduce((s, c) => s + c.netProfit, 0);
 
-  const inactiveCount = await prisma.customer.count({
-    where: {
-      userId,
-      OR: [
-        { lastOrderAt: { lt: thirtyDaysAgo } },
-        { lastOrderAt: null, createdAt: { lt: thirtyDaysAgo } },
-      ],
-    },
-  });
+  const inactiveWhere = {
+    userId,
+    OR: [
+      { lastOrderAt: { lt: thirtyDaysAgo } },
+      { lastOrderAt: null, createdAt: { lt: thirtyDaysAgo } },
+    ],
+  } as const;
+
+  const [inactiveCount, inactiveCustomers, newCustomersThisMonth] = await Promise.all([
+    prisma.customer.count({ where: inactiveWhere }),
+    prisma.customer.findMany({
+      where: inactiveWhere,
+      select: { id: true, name: true, phone: true, city: true, lastOrderAt: true },
+      orderBy: { lastOrderAt: "asc" },
+      take: 10,
+    }),
+    prisma.customer.findMany({
+      where: { userId, createdAt: { gte: startOfMonth } },
+      select: { id: true, name: true, phone: true, city: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+  ]);
 
   return NextResponse.json({
     totalCustomers,
@@ -104,6 +118,8 @@ export async function GET(req: NextRequest) {
     totalRevenue,
     totalProfit,
     inactiveCount,
+    inactiveCustomers,
+    newCustomersThisMonth,
     bestCustomer: allCustomers[0] ? {
       ...allCustomers[0],
       orderCount: allCustomers[0]._count.orders,

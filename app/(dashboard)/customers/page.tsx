@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Search, Filter, UserPlus, Download, Phone,
-  MapPin, ChevronDown, Loader2, Users, MessageCircle,
-  ArrowUpDown, X
+  MapPin, ChevronDown, Users, MessageCircle,
+  ArrowUpDown, X, CheckCircle2
 } from "lucide-react";
 import { formatCurrency, formatPhone, daysSince, getWhatsAppUrl, PAKISTAN_CITIES } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,27 @@ export default function CustomersPage() {
   const [sortBy, setSortBy] = useState("createdAt");
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
+  const [sentMap, setSentMap] = useState<Record<string, number>>({});
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, number>>({});
   const limit = 20;
+
+  useEffect(() => {
+    try {
+      setSentMap(JSON.parse(localStorage.getItem("wa_sent") || "{}"));
+      setFeedbackMap(JSON.parse(localStorage.getItem("wa_feedback") || "{}"));
+    } catch { /* ignore */ }
+  }, []);
+
+  function markSent(customerId: string) {
+    const updated = { ...sentMap, [customerId]: Date.now() };
+    setSentMap(updated);
+    localStorage.setItem("wa_sent", JSON.stringify(updated));
+  }
+
+  function isSentRecently(customerId: string) {
+    const ts = sentMap[customerId];
+    return ts ? Date.now() - ts < 24 * 60 * 60 * 1000 : false;
+  }
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -237,14 +257,25 @@ export default function CustomersPage() {
 
                   {/* WhatsApp button */}
                   <a
-                    href={getWhatsAppUrl(c.phone, `Assalamu Alaikum ${c.name} bhai!`)}
+                    href={getWhatsAppUrl(c.phone, `Assalamu Alaikum ${c.name}! 😊\nHamare store mein aapka shukriya. Koi zaroorat ho toh zaroor batayein!`)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-shrink-0 w-10 h-10 bg-green-500 hover:bg-green-600 rounded-xl flex items-center justify-center transition-colors"
+                    onClick={(e) => { e.stopPropagation(); markSent(c.id); }}
+                    className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-12 rounded-xl transition-colors text-xs font-semibold ${
+                      isSentRecently(c.id)
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-green-500 text-white hover:bg-green-600"
+                    }`}
                     title="WhatsApp send karein"
                   >
-                    <MessageCircle className="w-5 h-5 text-white" />
+                    {isSentRecently(c.id) ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Done</span>
+                      </>
+                    ) : (
+                      <MessageCircle className="w-5 h-5" />
+                    )}
                   </a>
                 </div>
               </Link>

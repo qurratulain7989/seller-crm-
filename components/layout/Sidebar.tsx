@@ -12,15 +12,17 @@ import {
   ShoppingBag,
   X,
   UserPlus,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/customers", icon: Users, label: "Customers" },
-  { href: "/customers/new", icon: UserPlus, label: "Customer Add" },
-  { href: "/analytics", icon: BarChart3, label: "Analytics" },
-  { href: "/templates", icon: MessageSquareHeart, label: "WhatsApp Templates" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelUr: "ڈیش بورڈ" },
+  { href: "/customers", icon: Users, label: "Customers", labelUr: "گاہک" },
+  { href: "/customers/new", icon: UserPlus, label: "Customer Add", labelUr: "نیا گاہک" },
+  { href: "/hisab", icon: Calculator, label: "Hisab Kitab", labelUr: "حساب کتاب" },
+  { href: "/analytics", icon: BarChart3, label: "Analytics", labelUr: "تجزیہ" },
+  { href: "/templates", icon: MessageSquareHeart, label: "WhatsApp", labelUr: "واٹس ایپ" },
 ];
 
 interface SidebarProps {
@@ -34,7 +36,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 lg:hidden"
@@ -42,7 +43,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 z-40 flex flex-col transition-transform duration-300 ease-in-out",
@@ -73,10 +73,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ href, icon: Icon, label }) => {
-            const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href) && href !== "/customers/new");
+          {navItems.map(({ href, icon: Icon, label, labelUr }) => {
             const exactActive = pathname === href;
-            const isActive = href === "/customers/new" ? exactActive : (href === "/dashboard" ? exactActive : active);
+            const active = href === "/customers/new" ? exactActive :
+              href === "/dashboard" ? exactActive :
+              pathname.startsWith(href);
 
             return (
               <Link
@@ -85,13 +86,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 onClick={onClose}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150",
-                  isActive
+                  active
                     ? "bg-brand-600 text-white shadow-sm"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                {label}
+                <div className="flex-1 min-w-0">
+                  <p className="truncate">{label}</p>
+                  <p className={cn("text-xs truncate", active ? "text-white/70" : "text-gray-400")}>{labelUr}</p>
+                </div>
               </Link>
             );
           })}
