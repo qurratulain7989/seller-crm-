@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const label = d.toLocaleString("en-PK", { month: "short", year: "2-digit" });
-    const monthOrders = recentOrders.filter((o) => {
+    const monthOrders = recentOrders.filter((o: { amount: number; profit: number; createdAt: Date }) => {
       const od = new Date(o.createdAt);
       return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth();
     });
