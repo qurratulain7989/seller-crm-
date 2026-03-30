@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
       { lastOrderAt: { lt: thirtyDaysAgo } },
       { lastOrderAt: null, createdAt: { lt: thirtyDaysAgo } },
     ],
-  } as const;
+  };
 
   const [inactiveCount, inactiveCustomers, newCustomersThisMonth] = await Promise.all([
     prisma.customer.count({ where: inactiveWhere }),
