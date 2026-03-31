@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, ShoppingBag, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res?.error) {
-      setError("Email ya password galat hai");
+      setError("Invalid email or password. Please try again.");
       return;
     }
 
@@ -37,34 +37,37 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        {/* Logo */}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-2xl mb-4 shadow-lg">
-            <ShoppingBag className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">SellerBook</h1>
-          <p className="text-gray-500 mt-1">Pakistani sellers ka smart CRM</p>
+          <Link href="/" className="inline-flex items-center gap-2 justify-center">
+            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold text-lg">O</span>
+            </div>
+            <span className="text-2xl font-bold text-gray-900">Ordergee</span>
+          </Link>
+          <p className="text-gray-500 mt-3 text-sm">Welcome back! Sign in to your account</p>
         </div>
 
-        {/* Card */}
-        <div className="card shadow-xl border-0">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Login karein</h2>
-
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
               <input
                 type="email"
-                className="input"
-                placeholder="aap@example.com"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -73,11 +76,16 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="label">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">Password</label>
+                <Link href="/forgot-password" className="text-xs text-green-600 hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
-                  className="input pr-12"
+                  className="w-full px-4 py-2.5 pr-12 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -89,24 +97,28 @@ export default function LoginPage() {
                   onClick={() => setShowPass(!showPass)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
                 >
-                  {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full text-base py-3">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+            >
               {loading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Login ho raha hai...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
               ) : (
-                <>Login <ArrowRight className="w-5 h-5" /></>
+                <>Sign In <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Account nahi hai?{" "}
-            <Link href="/signup" className="text-brand-600 font-semibold hover:underline">
-              Register karein
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-green-600 font-semibold hover:underline">
+              Create one free
             </Link>
           </p>
         </div>
