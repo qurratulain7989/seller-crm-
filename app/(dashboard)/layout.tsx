@@ -7,14 +7,16 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { LangProvider } from "@/lib/lang-context";
 import { Loader2 } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/customers": "Customers",
-  "/customers/new": "Naya Customer",
+  "/customers/new": "Add Customer",
   "/analytics": "Analytics",
   "/templates": "WhatsApp Templates",
+  "/hisab": "Accounting",
 };
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -35,7 +37,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   const title = pageTitles[pathname] ||
-    (pathname.startsWith("/customers/") ? "Customer Detail" : "SellerBook");
+    (pathname.startsWith("/customers/") ? "Customer Detail" : "Ordergee");
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -55,7 +57,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <DashboardContent>{children}</DashboardContent>
+      <LangProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </LangProvider>
     </SessionProvider>
   );
 }

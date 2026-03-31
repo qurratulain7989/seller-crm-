@@ -24,10 +24,10 @@ type Customer = {
 };
 
 const SORT_OPTIONS = [
-  { value: "createdAt", label: "Naya pehle" },
-  { value: "totalPurchase", label: "Ziada purchase" },
-  { value: "netProfit", label: "Ziada profit" },
-  { value: "name", label: "Naam (A-Z)" },
+  { value: "createdAt", label: "Newest first" },
+  { value: "totalPurchase", label: "Most purchase" },
+  { value: "netProfit", label: "Most profit" },
+  { value: "name", label: "Name (A-Z)" },
   { value: "lastOrderAt", label: "Last order" },
 ];
 
