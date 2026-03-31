@@ -34,6 +34,7 @@ model Customer {
   totalPurchase Float    @default(0)
   totalExpense  Float    @default(0)
   netProfit     Float    @default(0)
+  dateOfBirth   DateTime?
   lastOrderAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

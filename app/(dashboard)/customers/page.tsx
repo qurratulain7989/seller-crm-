@@ -5,10 +5,14 @@ import Link from "next/link";
 import {
   Search, Filter, UserPlus, Download, Phone,
   MapPin, ChevronDown, Users, MessageCircle,
-  ArrowUpDown, X, CheckCircle2
+  ArrowUpDown, X, CheckCircle2, Upload, Crown
 } from "lucide-react";
-import { formatCurrency, formatPhone, daysSince, getWhatsAppUrl, PAKISTAN_CITIES } from "@/lib/utils";
+import {
+  formatCurrency, formatPhone, daysSince, getWhatsAppUrl, PAKISTAN_CITIES,
+  getCustomerTag, TAG_STYLES
+} from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/lang-context";
 
 type Customer = {
   id: string;
@@ -32,6 +36,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function CustomersPage() {
+  const { t } = useLang();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -41,13 +46,13 @@ export default function CustomersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [sentMap, setSentMap] = useState<Record<string, number>>({});
-  const [feedbackMap, setFeedbackMap] = useState<Record<string, number>>({});
+  const [vipThreshold, setVipThreshold] = useState(10000);
   const limit = 20;
 
   useEffect(() => {
     try {
       setSentMap(JSON.parse(localStorage.getItem("wa_sent") || "{}"));
-      setFeedbackMap(JSON.parse(localStorage.getItem("wa_feedback") || "{}"));
+      setVipThreshold(parseInt(localStorage.getItem("vip_threshold") || "10000"));
     } catch { /* ignore */ }
   }, []);
 
@@ -109,7 +114,7 @@ export default function CustomersPage() {
           <input
             type="text"
             className="input pl-11"
-            placeholder="Naam, phone, ya city se dhunden..."
+            placeholder={t("Search by name, phone, or city...", "نام، فون، یا شہر سے تلاش کریں...")}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
@@ -119,20 +124,23 @@ export default function CustomersPage() {
             </button>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cn("btn-secondary text-sm", hasFilters && "border-brand-400 bg-brand-50 text-brand-700")}
           >
             <Filter className="w-4 h-4" />
-            Filters
+            {t("Filters", "فلٹر")}
             {hasFilters && <span className="w-2 h-2 bg-orange-500 rounded-full" />}
           </button>
           <button onClick={exportCSV} className="btn-ghost text-sm">
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-4 h-4" /> {t("Export", "ایکسپورٹ")}
           </button>
+          <Link href="/customers/import" className="btn-ghost text-sm">
+            <Upload className="w-4 h-4" /> {t("Import", "امپورٹ")}
+          </Link>
           <Link href="/customers/new" className="btn-primary text-sm">
-            <UserPlus className="w-4 h-4" /> Add
+            <UserPlus className="w-4 h-4" /> {t("Add", "شامل کریں")}
           </Link>
         </div>
       </div>
@@ -142,14 +150,14 @@ export default function CustomersPage() {
         <div className="card animate-slide-up">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[160px]">
-              <label className="label text-xs">City se filter</label>
+              <label className="label text-xs">{t("Filter by City", "شہر سے فلٹر")}</label>
               <div className="relative">
                 <select
                   className="input text-sm appearance-none pr-8"
                   value={city}
                   onChange={(e) => { setCity(e.target.value); setPage(1); }}
                 >
-                  <option value="">Sab cities</option>
+                  <option value="">{t("All cities", "تمام شہر")}</option>
                   {PAKISTAN_CITIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -158,7 +166,7 @@ export default function CustomersPage() {
               </div>
             </div>
             <div className="flex-1 min-w-[160px]">
-              <label className="label text-xs">Sort karein</label>
+              <label className="label text-xs">{t("Sort by", "ترتیب")}</label>
               <div className="relative">
                 <select
                   className="input text-sm appearance-none pr-8"
@@ -174,7 +182,7 @@ export default function CustomersPage() {
             </div>
             {hasFilters && (
               <button onClick={clearFilters} className="btn-ghost text-sm text-red-500 hover:text-red-700 hover:bg-red-50">
-                <X className="w-4 h-4" /> Clear
+                <X className="w-4 h-4" /> {t("Clear", "صاف کریں")}
               </button>
             )}
           </div>
@@ -185,8 +193,8 @@ export default function CustomersPage() {
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Users className="w-4 h-4" />
         <span>
-          {loading ? "..." : `${total} customers`}
-          {(search || city) && " (filtered)"}
+          {loading ? "..." : `${total} ${t("customers", "گاہک")}`}
+          {(search || city) && ` (${t("filtered", "فلٹر شدہ")})`}
         </span>
       </div>
 
@@ -201,27 +209,41 @@ export default function CustomersPage() {
         <div className="card text-center py-16">
           <Users className="w-14 h-14 text-gray-200 mx-auto mb-4" />
           <p className="text-gray-500 font-medium">
-            {search || city ? "Koi customer nahi mila" : "Abhi koi customer nahi"}
+            {search || city ? t("No customers found", "کوئی گاہک نہیں ملا") : t("No customers yet", "ابھی کوئی گاہک نہیں")}
           </p>
           {!search && !city && (
-            <Link href="/customers/new" className="btn-primary mt-4 inline-flex">
-              <UserPlus className="w-4 h-4" /> Pehla Customer Add Karein
-            </Link>
+            <div className="flex gap-3 justify-center mt-4">
+              <Link href="/customers/new" className="btn-primary inline-flex">
+                <UserPlus className="w-4 h-4" /> {t("Add Customer", "گاہک شامل کریں")}
+              </Link>
+              <Link href="/customers/import" className="btn-secondary inline-flex">
+                <Upload className="w-4 h-4" /> {t("Import", "امپورٹ")}
+              </Link>
+            </div>
           )}
         </div>
       ) : (
         <div className="space-y-2">
           {customers.map((c) => {
-            const inactive = daysSince(c.lastOrderAt) > 30;
+            const tag = getCustomerTag(c._count.orders, c.totalPurchase, c.lastOrderAt, vipThreshold);
+            const tagStyle = TAG_STYLES[tag];
+            const isVip = tag === "VIP";
+            const isInactive = tag === "Inactive";
             return (
               <Link key={c.id} href={`/customers/${c.id}`}>
                 <div className="card p-4 hover:shadow-md transition-all duration-150 cursor-pointer flex items-center gap-4">
                   {/* Avatar */}
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0",
-                    inactive ? "bg-red-100 text-red-600" : "bg-brand-100 text-brand-700"
+                    "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg flex-shrink-0 relative",
+                    isInactive ? "bg-red-100 text-red-600" :
+                    isVip ? "bg-yellow-100 text-yellow-700" : "bg-brand-100 text-brand-700"
                   )}>
                     {c.name[0]?.toUpperCase()}
+                    {isVip && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <Crown className="w-3 h-3 text-yellow-900" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Info */}
@@ -242,13 +264,13 @@ export default function CustomersPage() {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="font-bold text-brand-700">{formatCurrency(c.totalPurchase)}</p>
-                        <p className="text-xs text-gray-400">{c._count.orders} orders</p>
+                        <p className="text-xs text-gray-400">{c._count.orders} {t("orders", "آرڈر")}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      {inactive && (
-                        <span className="badge badge-red">30 din se inactive</span>
-                      )}
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold", tagStyle)}>
+                        {isVip && <Crown className="inline w-3 h-3 mr-0.5" />}{tag}
+                      </span>
                       {c.source && (
                         <span className="badge badge-gray">{c.source}</span>
                       )}
@@ -257,7 +279,7 @@ export default function CustomersPage() {
 
                   {/* WhatsApp button */}
                   <a
-                    href={getWhatsAppUrl(c.phone, `Assalamu Alaikum ${c.name}! 😊\nHamare store mein aapka shukriya. Koi zaroorat ho toh zaroor batayein!`)}
+                    href={getWhatsAppUrl(c.phone, `Assalamu Alaikum ${c.name}! 😊\nThank you for being our valued customer!`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => { e.stopPropagation(); markSent(c.id); }}
@@ -266,7 +288,7 @@ export default function CustomersPage() {
                         ? "bg-green-100 text-green-700 hover:bg-green-200"
                         : "bg-green-500 text-white hover:bg-green-600"
                     }`}
-                    title="WhatsApp send karein"
+                    title="Send WhatsApp"
                   >
                     {isSentRecently(c.id) ? (
                       <>
@@ -292,17 +314,17 @@ export default function CustomersPage() {
             disabled={page === 1}
             className="btn-secondary text-sm py-2 px-4 disabled:opacity-40"
           >
-            Pehle
+            {t("Previous", "پہلے")}
           </button>
           <span className="text-sm text-gray-500">
-            Page {page} / {Math.ceil(total / limit)}
+            {t("Page", "صفحہ")} {page} / {Math.ceil(total / limit)}
           </span>
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= Math.ceil(total / limit)}
             className="btn-secondary text-sm py-2 px-4 disabled:opacity-40"
           >
-            Agla
+            {t("Next", "اگلا")}
           </button>
         </div>
       )}

@@ -12,6 +12,7 @@ const customerSchema = z.object({
   notes: z.string().max(1000).optional(),
   source: z.string().max(50).optional(),
   tags: z.string().max(200).optional(),
+  dateOfBirth: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -89,11 +90,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { dateOfBirth, ...rest } = parsed.data;
     const customer = await prisma.customer.create({
       data: {
-        ...parsed.data,
+        ...rest,
         phone: cleanPhone,
         userId: session.user.id,
+        ...(dateOfBirth && { dateOfBirth: new Date(dateOfBirth) }),
       },
     });
 

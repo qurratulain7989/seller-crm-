@@ -14,9 +14,11 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/customers": "Customers",
   "/customers/new": "Add Customer",
+  "/customers/import": "Import Customers",
   "/analytics": "Analytics",
   "/templates": "WhatsApp Templates",
   "/hisab": "Accounting",
+  "/settings": "Settings",
 };
 
 function DashboardContent({ children }: { children: React.ReactNode }) {

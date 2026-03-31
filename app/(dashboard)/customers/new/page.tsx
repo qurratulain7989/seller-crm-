@@ -16,6 +16,7 @@ type FormData = {
   address: string;
   notes: string;
   source: string;
+  dateOfBirth: string;
 };
 
 type ParsedData = {
@@ -30,7 +31,7 @@ export default function NewCustomerPage() {
   const [parseError, setParseError] = useState("");
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
   const [form, setForm] = useState<FormData>({
-    name: "", phone: "", city: "", address: "", notes: "", source: "WhatsApp",
+    name: "", phone: "", city: "", address: "", notes: "", source: "WhatsApp", dateOfBirth: "",
   });
   const [orderAmount, setOrderAmount] = useState("");
   const [orderExpense, setOrderExpense] = useState("");
@@ -317,6 +318,16 @@ export default function NewCustomerPage() {
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
+        </div>
+
+        <div>
+          <label className="label">Date of Birth (optional — for birthday reminders)</label>
+          <input
+            type="date"
+            className="input"
+            value={form.dateOfBirth}
+            onChange={(e) => updateForm("dateOfBirth", e.target.value)}
+          />
         </div>
 
         <div>

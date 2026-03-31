@@ -65,3 +65,41 @@ export const PAKISTAN_CITIES = [
 export const CUSTOMER_SOURCES = [
   "WhatsApp", "Instagram", "Facebook", "Daraz", "TikTok", "Referral", "Walk-in", "Other"
 ];
+
+export type CustomerTag = "New" | "Regular" | "VIP" | "Inactive";
+
+export function getCustomerTag(
+  orderCount: number,
+  totalPurchase: number,
+  lastOrderAt: string | null,
+  vipThreshold = 10000
+): CustomerTag {
+  const days = daysSince(lastOrderAt);
+  if (orderCount > 0 && days > 30) return "Inactive";
+  if (orderCount >= 5 || totalPurchase >= vipThreshold) return "VIP";
+  if (orderCount >= 3) return "Regular";
+  return "New";
+}
+
+export const TAG_STYLES: Record<CustomerTag, string> = {
+  New: "bg-blue-100 text-blue-700",
+  Regular: "bg-green-100 text-green-700",
+  VIP: "bg-yellow-100 text-yellow-800",
+  Inactive: "bg-red-100 text-red-600",
+};
+
+export function isBirthdayToday(dateOfBirth: string | null): boolean {
+  if (!dateOfBirth) return false;
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+  return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
+}
+
+export function daysUntilBirthday(dateOfBirth: string | null): number {
+  if (!dateOfBirth) return 999;
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+  const next = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  return Math.ceil((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
   const userId = session.user.id;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const twentyDaysAgo = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
 
   const [
     totalCustomers,
@@ -21,6 +23,10 @@ export async function GET(req: NextRequest) {
     recentOrders,
     cityGroups,
     sourceGroups,
+    todayOrders,
+    todayNewCustomers,
+    atRiskCustomers,
+    birthdayCustomers,
   ] = await Promise.all([
     prisma.customer.count({ where: { userId } }),
 
@@ -39,6 +45,7 @@ export async function GET(req: NextRequest) {
         netProfit: true,
         lastOrderAt: true,
         createdAt: true,
+        dateOfBirth: true,
         _count: { select: { orders: true } },
       },
       orderBy: { totalPurchase: "desc" },
@@ -66,6 +73,34 @@ export async function GET(req: NextRequest) {
       where: { userId, source: { not: null } },
       _count: { id: true },
       orderBy: { _count: { id: "desc" } },
+    }),
+
+    // Today's orders
+    prisma.order.findMany({
+      where: { customer: { userId }, createdAt: { gte: startOfToday } },
+      select: { amount: true, profit: true },
+    }),
+
+    // New customers today
+    prisma.customer.count({
+      where: { userId, createdAt: { gte: startOfToday } },
+    }),
+
+    // At-risk: 20-30 days inactive (going to become inactive soon)
+    prisma.customer.findMany({
+      where: {
+        userId,
+        lastOrderAt: { gte: thirtyDaysAgo, lt: twentyDaysAgo },
+      },
+      select: { id: true, name: true, phone: true, city: true, lastOrderAt: true },
+      orderBy: { lastOrderAt: "asc" },
+      take: 5,
+    }),
+
+    // Birthday customers (all with DOB, we'll filter by upcoming on frontend)
+    prisma.customer.findMany({
+      where: { userId, dateOfBirth: { not: null } },
+      select: { id: true, name: true, phone: true, dateOfBirth: true },
     }),
   ]);
 
@@ -120,6 +155,11 @@ export async function GET(req: NextRequest) {
     inactiveCount,
     inactiveCustomers,
     newCustomersThisMonth,
+    todayOrders: todayOrders.length,
+    todayRevenue: todayOrders.reduce((s, o) => s + o.amount, 0),
+    todayNewCustomers,
+    atRiskCustomers,
+    birthdayCustomers,
     bestCustomer: allCustomers[0] ? {
       ...allCustomers[0],
       orderCount: allCustomers[0]._count.orders,

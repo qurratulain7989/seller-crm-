@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard, Users, BarChart3, MessageSquareHeart,
-  LogOut, X, UserPlus, Calculator,
+  LogOut, X, UserPlus, Calculator, Upload, Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/lib/lang-context";
@@ -14,9 +14,11 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelUr: "ڈیش بورڈ" },
   { href: "/customers", icon: Users, label: "Customers", labelUr: "گاہک" },
   { href: "/customers/new", icon: UserPlus, label: "Add Customer", labelUr: "نیا گاہک" },
+  { href: "/customers/import", icon: Upload, label: "Import", labelUr: "امپورٹ" },
   { href: "/hisab", icon: Calculator, label: "Accounting", labelUr: "حساب کتاب" },
   { href: "/analytics", icon: BarChart3, label: "Analytics", labelUr: "تجزیہ" },
   { href: "/templates", icon: MessageSquareHeart, label: "WhatsApp", labelUr: "واٹس ایپ" },
+  { href: "/settings", icon: Settings, label: "Settings", labelUr: "ترتیبات" },
 ];
 
 interface SidebarProps {
@@ -63,6 +65,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {navItems.map(({ href, icon: Icon, label, labelUr }) => {
             const active =
               href === "/customers/new" ? pathname === href :
+              href === "/customers/import" ? pathname === href :
               href === "/dashboard" ? pathname === href :
               pathname.startsWith(href);
 

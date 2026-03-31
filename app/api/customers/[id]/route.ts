@@ -12,6 +12,7 @@ const updateSchema = z.object({
   notes: z.string().max(1000).optional().nullable(),
   source: z.string().max(50).optional().nullable(),
   tags: z.string().max(200).optional().nullable(),
+  dateOfBirth: z.string().optional().nullable(),
 });
 
 const orderSchema = z.object({
@@ -102,9 +103,15 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
+    const { dateOfBirth, ...rest } = parsed.data;
     const customer = await prisma.customer.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...rest,
+        ...(dateOfBirth !== undefined && {
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        }),
+      },
     });
 
     return NextResponse.json({ customer });
