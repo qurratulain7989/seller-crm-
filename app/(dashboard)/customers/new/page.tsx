@@ -505,7 +505,7 @@ export default function NewCustomerPage() {
                     <input
                       type={key === "amount" ? "number" : "text"}
                       className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white"
-                      value={(msgParsed as Record<string, string | number>)[key] as string || ""}
+                      value={(msgParsed as unknown as Record<string, string | number>)[key] as string || ""}
                       onChange={(e) => setMsgParsed((p) => p ? { ...p, [key]: key === "amount" ? parseFloat(e.target.value) || 0 : e.target.value } : p)}
                     />
                   </div>
