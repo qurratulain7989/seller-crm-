@@ -45,7 +45,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">O</span>
             </div>
             <div>
@@ -77,7 +77,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   active
-                    ? "bg-green-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 )}
               >
@@ -91,8 +91,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* User */}
         <div className="px-3 py-3 border-t border-gray-100">
           <div className="flex items-center gap-2.5 px-3 py-2 mb-1">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-green-700 font-bold text-sm">
+            <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-brand-700 font-bold text-sm">
                 {session?.user?.name?.[0]?.toUpperCase() || "U"}
               </span>
             </div>

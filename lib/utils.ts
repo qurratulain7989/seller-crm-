@@ -82,9 +82,9 @@ export function getCustomerTag(
 }
 
 export const TAG_STYLES: Record<CustomerTag, string> = {
-  New: "bg-blue-100 text-blue-700",
-  Regular: "bg-green-100 text-green-700",
-  VIP: "bg-yellow-100 text-yellow-800",
+  New: "bg-indigo-100 text-indigo-700",
+  Regular: "bg-teal-100 text-teal-700",
+  VIP: "bg-amber-100 text-amber-800",
   Inactive: "bg-red-100 text-red-600",
 };
 

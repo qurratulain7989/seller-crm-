@@ -26,9 +26,12 @@ export async function GET(req: NextRequest) {
   const city = searchParams.get("city") || "";
   const sortBy = searchParams.get("sortBy") || "createdAt";
   const order = searchParams.get("order") || "desc";
+  const filter = searchParams.get("filter") || "";
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const skip = (page - 1) * limit;
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const where = {
     userId: session.user.id,
@@ -40,6 +43,12 @@ export async function GET(req: NextRequest) {
       ],
     }),
     ...(city && { city: { equals: city } }),
+    ...(filter === "inactive" && {
+      OR: [
+        { lastOrderAt: { lt: thirtyDaysAgo } },
+        { lastOrderAt: null, createdAt: { lt: thirtyDaysAgo } },
+      ],
+    }),
   };
 
   const validSortFields = ["createdAt", "totalPurchase", "netProfit", "name", "lastOrderAt"];

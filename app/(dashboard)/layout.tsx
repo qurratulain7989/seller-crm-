@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { LangProvider } from "@/lib/lang-context";
 import { Loader2 } from "lucide-react";
@@ -46,12 +47,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} title={title} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
           <div className="max-w-6xl mx-auto">
             {children}
           </div>
         </main>
       </div>
+      <BottomNav />
     </div>
   );
 }

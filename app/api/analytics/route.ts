@@ -27,6 +27,7 @@ export async function GET() {
     todayNewCustomers,
     atRiskCustomers,
     birthdayCustomers,
+    activeCustomers,
   ] = await Promise.all([
     prisma.customer.count({ where: { userId } }),
 
@@ -102,6 +103,18 @@ export async function GET() {
       where: { userId, dateOfBirth: { not: null } },
       select: { id: true, name: true, phone: true, dateOfBirth: true },
     }),
+
+    // Active customers in last 30 days (for Regular Customers widget)
+    prisma.customer.findMany({
+      where: { userId, lastOrderAt: { gte: thirtyDaysAgo } },
+      select: {
+        id: true, name: true, phone: true, city: true,
+        totalPurchase: true, lastOrderAt: true,
+        _count: { select: { orders: true } },
+      },
+      orderBy: { totalPurchase: "desc" },
+      take: 20,
+    }),
   ]);
 
   // Monthly revenue for last 6 months
@@ -160,6 +173,7 @@ export async function GET() {
     todayNewCustomers,
     atRiskCustomers,
     birthdayCustomers,
+    activeCustomers,
     bestCustomer: allCustomers[0] ? {
       ...allCustomers[0],
       orderCount: allCustomers[0]._count.orders,
