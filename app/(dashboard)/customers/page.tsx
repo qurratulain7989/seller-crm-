@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   Search, Filter, UserPlus, Download, Phone,
   MapPin, ChevronDown, Users, ArrowUpDown,
-  X, CheckCircle2, Crown, AlertCircle
+  X, CheckCircle2, Crown, AlertCircle, Upload
 } from "lucide-react";
 import {
   formatCurrency, formatPhone, getWhatsAppUrl, PAKISTAN_CITIES,
