@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Users, TrendingUp, AlertCircle, DollarSign, MessageCircle,
   UserPlus, ChevronRight, Star, Crown, Cake,
   ShoppingCart, Bell, Heart, Package, X,
-  ArrowUpRight, Sparkles,
+  ArrowUpRight, Sparkles, SlidersHorizontal, UserMinus, Calendar,
 } from "lucide-react";
 import {
   formatCurrency, formatPhone, daysSince, getWhatsAppUrl,
@@ -42,18 +43,49 @@ type Stats = {
   atRiskCustomers?: InactiveCustomer[];
 };
 
+type ActiveFilter = { type: "today" | "week" | "custom"; from?: string; to?: string } | null;
+
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse bg-gray-100 rounded-xl ${className}`} />;
 }
 
+function WaSvg() {
+  return (
+    <svg className="w-3.5 h-3.5 fill-white flex-shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
+  const { lang, t } = useLang();
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [sentMap, setSentMap] = useState<Record<string, number>>({});
   const [vipThreshold, setVipThreshold] = useState(10000);
   const [msgModal, setMsgModal] = useState<MsgModal | null>(null);
   const [editMsg, setEditMsg] = useState("");
-  const { t } = useLang();
+
+  // Filter state
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>(null);
+  const [selectedRange, setSelectedRange] = useState<"today" | "week" | "custom" | null>(null);
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    if (isFilterOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isFilterOpen]);
 
   useEffect(() => {
     fetch("/api/analytics")
@@ -93,8 +125,28 @@ export default function DashboardPage() {
   });
   const notificationCount = birthdayToday.length + birthdaySoon.length + (stats?.atRiskCustomers?.length || 0);
 
+  // Format revenue as "12.4k"
+  const formatK = (v: number) =>
+    v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toString();
+
+  const filterLabels = {
+    today: { en: "Today", ur: "آج" },
+    week: { en: "This Week", ur: "اس ہفتے" },
+    custom: { en: "Custom Range", ur: "اپنی مدت" },
+  };
+
+  function getActivePillLabel() {
+    if (!activeFilter) return "";
+    if (activeFilter.type === "custom" && activeFilter.from && activeFilter.to) {
+      return `${activeFilter.from} → ${activeFilter.to}`;
+    }
+    return lang === "ur"
+      ? filterLabels[activeFilter.type].ur
+      : filterLabels[activeFilter.type].en;
+  }
+
   return (
-    <div className="space-y-5 pb-20 lg:pb-6 animate-fade-in">
+    <div className="space-y-0 pb-20 lg:pb-6 animate-fade-in">
 
       {/* ── WA Message Modal ── */}
       {msgModal && (
@@ -139,119 +191,311 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── Quick Actions ── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Link href="/customers/new" className="inline-flex items-center gap-1.5 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-colors shadow-sm">
-          <UserPlus className="w-4 h-4" /> {t("Add Customer", "نیا گاہک")}
+      {/* ════════════════════════════════════════
+          SECTION 2 — ACTION ROW
+      ════════════════════════════════════════ */}
+      <div className="flex items-center gap-3 py-3 border-b border-gray-100 mb-4">
+        {/* Add Customer Button */}
+        <Link
+          href="/customers/new"
+          className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-xl py-3 font-bold text-sm transition-colors shadow-sm"
+        >
+          <UserPlus className="w-4 h-4" />
+          {t("+ Add Customer / New Order", "+ نیا گاہک / آرڈر")}
         </Link>
-        <Link href="/customers/import" className="inline-flex items-center gap-1.5 border border-gray-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-          <ShoppingCart className="w-4 h-4" /> {t("Import", "امپورٹ")}
-        </Link>
-        <Link href="/customers" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-700 transition-colors ml-auto">
-          {t("All customers", "سب گاہک")} <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
 
-      {/* ── Today's Hero Card ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-purple-800 rounded-2xl p-5 text-white shadow-lg">
-        <div className="absolute top-0 right-0 w-44 h-44 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-28 h-28 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-        <p className="text-brand-200 text-xs font-semibold tracking-widest mb-4 flex items-center gap-1.5 relative">
-          <Sparkles className="w-3.5 h-3.5" /> TODAY&apos;S SUMMARY
-        </p>
-        <div className="grid grid-cols-3 gap-3 relative">
-          <Link href="/hisab" className="group">
-            <p className="text-2xl font-bold">{loading ? "—" : stats?.todayOrders ?? 0}</p>
-            <p className="text-brand-200 text-xs mt-0.5">{t("Orders", "آرڈر")}</p>
-            <ArrowUpRight className="w-3.5 h-3.5 text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-          </Link>
-          <Link href="/hisab" className="group">
-            <p className="text-xl font-bold">{loading ? "—" : formatCurrency(stats?.todayRevenue ?? 0)}</p>
-            <p className="text-brand-200 text-xs mt-0.5">{t("Revenue", "آمدنی")}</p>
-            <ArrowUpRight className="w-3.5 h-3.5 text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-          </Link>
-          <Link href="/customers?filter=new" className="group">
-            <p className="text-2xl font-bold">{loading ? "—" : stats?.todayNewCustomers ?? 0}</p>
-            <p className="text-brand-200 text-xs mt-0.5">{t("New Customers", "نئے گاہک")}</p>
-            <ArrowUpRight className="w-3.5 h-3.5 text-brand-300 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-          </Link>
+        {/* Filter Button */}
+        <div className="relative flex-shrink-0" ref={filterRef}>
+          <button
+            onClick={() => setIsFilterOpen((v) => !v)}
+            className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl py-3 px-4 font-medium text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {t("Filter", "فلٹر")}
+          </button>
+
+          {/* Active Filter Pill */}
+          {activeFilter && (
+            <span className="ml-2 inline-flex items-center gap-1 bg-[#25D366] text-white rounded-full px-3 py-1 text-xs font-medium">
+              {getActivePillLabel()}
+              <button
+                onClick={() => { setActiveFilter(null); setSelectedRange(null); }}
+                className="hover:opacity-75 ml-0.5"
+              >
+                ✕
+              </button>
+            </span>
+          )}
+
+          {/* Filter Dropdown */}
+          {isFilterOpen && (
+            <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 p-2">
+              <p className="text-xs text-gray-400 px-3 mb-2">
+                {t("Select Range", "مدت منتخب کریں")}
+              </p>
+
+              {(["today", "week", "custom"] as const).map((key) => (
+                <div key={key}>
+                  <button
+                    onClick={() => {
+                      setSelectedRange(key);
+                      if (key !== "custom") {
+                        setActiveFilter({ type: key });
+                        setIsFilterOpen(false);
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                      selectedRange === key
+                        ? "bg-green-50 text-[#25D366] font-medium"
+                        : "hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    {key === "today" && t("Today", "آج")}
+                    {key === "week" && t("This Week", "اس ہفتے")}
+                    {key === "custom" && t("Custom Range", "اپنی مدت")}
+                  </button>
+
+                  {/* Custom Range date inputs */}
+                  {key === "custom" && selectedRange === "custom" && (
+                    <div className="px-3 pt-2 pb-1 space-y-2">
+                      <div>
+                        <label className="text-[10px] text-gray-400 mb-1 block">
+                          {t("From", "سے")}
+                        </label>
+                        <input
+                          type="date"
+                          value={filterFrom}
+                          onChange={(e) => setFilterFrom(e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#25D366]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-400 mb-1 block">
+                          {t("To", "تک")}
+                        </label>
+                        <input
+                          type="date"
+                          value={filterTo}
+                          onChange={(e) => setFilterTo(e.target.value)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#25D366]"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (filterFrom && filterTo) {
+                            setActiveFilter({ type: "custom", from: filterFrom, to: filterTo });
+                            setIsFilterOpen(false);
+                          }
+                        }}
+                        className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-lg py-2 font-bold text-sm transition-colors"
+                      >
+                        {t("Apply", "لاگو کریں")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Stats Grid ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* ════════════════════════════════════════
+          SECTION 3 — TODAY'S SUMMARY CARD
+      ════════════════════════════════════════ */}
+      <div className="rounded-2xl overflow-hidden mb-4" style={{ background: "#1a7a5e" }}>
+        {/* Top section */}
+        <div className="flex px-4 pt-4 pb-3">
+          {/* Left — Today's Orders */}
+          <div className="flex-1">
+            <p className="text-[9px] font-medium text-white/70 tracking-widest uppercase mb-1">
+              {t("TODAY'S ORDERS", "آج کے آرڈرز")}
+            </p>
+            <p className="text-[32px] font-bold text-white leading-none">
+              {loading ? "—" : stats?.todayOrders ?? 0}
+            </p>
+            <p className="text-[10px] text-white/60 mt-1">
+              {t("Orders received today", "آج موصول آرڈرز")}
+            </p>
+          </div>
 
-        {/* Total Customers */}
-        <Link href="/customers">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-h-[110px]">
-            <div className="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center mb-3">
-              <Users className="w-4 h-4 text-brand-600" />
+          {/* Vertical divider */}
+          <div className="w-px bg-white/25 self-stretch mx-1" />
+
+          {/* Right — Today's Revenue */}
+          <div className="flex-1 pl-3">
+            <p className="text-[9px] font-medium text-white/70 tracking-widest uppercase mb-1">
+              {t("TODAY'S REVENUE", "آج کی آمدنی")}
+            </p>
+            <p className="text-[32px] font-bold text-white leading-none">
+              {loading ? "—" : formatK(stats?.todayRevenue ?? 0)}
+            </p>
+            <p className="text-[10px] text-white/60 mt-1">
+              {t("PKR earned today", "آج کی کمائی PKR")}
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom strip */}
+        <div
+          className="px-4 py-2.5 flex justify-between items-center"
+          style={{ background: "rgba(0,0,0,0.20)" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.20)" }}>
+              <UserPlus className="w-3 h-3 text-white" />
             </div>
-            {loading ? (
-              <><Skeleton className="h-6 w-16 mb-1" /><Skeleton className="h-3 w-24" /></>
-            ) : (
-              <>
-                <p className="text-xl font-bold text-slate-800">{stats?.totalCustomers ?? 0}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{t("Total Customers", "کل گاہک")}</p>
-                <p className="text-xs text-brand-600 font-medium mt-1">+{stats?.newThisMonth ?? 0} {t("this month", "اس مہینے")}</p>
-              </>
-            )}
+            <span className="text-white text-[11px] font-medium">
+              <span className="font-bold">+{stats?.todayNewCustomers ?? 0}</span>{" "}
+              {t("new customers today", "نئے گاہک آج")}
+            </span>
           </div>
-        </Link>
+          <button
+            onClick={() => router.push("/hisab")}
+            className="text-white/85 text-[11px] font-semibold cursor-pointer hover:text-white transition-colors"
+          >
+            {t("View orders →", "← آرڈرز دیکھیں")}
+          </button>
+        </div>
+      </div>
 
-        {/* Total Revenue */}
-        <Link href="/hisab">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-h-[110px]">
-            <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center mb-3">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+      {/* ════════════════════════════════════════
+          SECTION 4 — 4 ACTION CARDS
+      ════════════════════════════════════════ */}
+      <div className="mb-5">
+        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">
+          {t("QUICK ACTIONS", "فوری اقدام")}
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+          {/* Card 1 — New Customers */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[170px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#e8f5e9" }}>
+                  <UserPlus className="w-4 h-4" style={{ stroke: "#25D366" }} />
+                </div>
+                <span className="text-[13px] font-medium text-gray-800 leading-tight">
+                  {t("New Customers", "نئے گاہک")}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400 mb-3 leading-snug">
+                {t("First-time buyers this month", "اس مہینے پہلی بار خریداری")}
+              </p>
+              <p className="text-[28px] font-bold text-gray-900 leading-none mb-4">
+                {loading ? "—" : stats?.newThisMonth ?? 0}
+              </p>
             </div>
-            {loading ? (
-              <><Skeleton className="h-6 w-20 mb-1" /><Skeleton className="h-3 w-20" /></>
-            ) : (
-              <>
-                <p className="text-xl font-bold text-slate-800">{formatCurrency(stats?.totalRevenue ?? 0)}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{t("Total Revenue", "کل آمدنی")}</p>
-              </>
-            )}
+            <a
+              href="https://wa.me/923000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-1.5 text-white font-bold text-[11px] rounded-xl py-2.5 px-3 min-h-[36px] transition-colors"
+              style={{ background: "#25D366" }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1ebe5d")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#25D366")}
+            >
+              <WaSvg />
+              {t("Get Feedback", "رائے لیں")}
+            </a>
           </div>
-        </Link>
 
-        {/* Net Profit */}
-        <Link href="/hisab">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-h-[110px]">
-            <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center mb-3">
-              <DollarSign className="w-4 h-4 text-purple-600" />
+          {/* Card 2 — All Customers */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[170px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#e3f2fd" }}>
+                  <Users className="w-4 h-4" style={{ stroke: "#1976d2" }} />
+                </div>
+                <span className="text-[13px] font-medium text-gray-800 leading-tight">
+                  {t("All Customers", "تمام گاہک")}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400 mb-3 leading-snug">
+                {t("Your complete customer base", "آپ کا مکمل گاہک ریکارڈ")}
+              </p>
+              <p className="text-[28px] font-bold text-gray-900 leading-none mb-4">
+                {loading ? "—" : stats?.totalCustomers ?? 0}
+              </p>
             </div>
-            {loading ? (
-              <><Skeleton className="h-6 w-20 mb-1" /><Skeleton className="h-3 w-20" /></>
-            ) : (
-              <>
-                <p className="text-xl font-bold text-slate-800">{formatCurrency(stats?.totalProfit ?? 0)}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{t("Net Profit", "خالص منافع")}</p>
-              </>
-            )}
+            <a
+              href="https://wa.me/923000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-1.5 text-white font-bold text-[11px] rounded-xl py-2.5 px-3 min-h-[36px] transition-colors"
+              style={{ background: "#25D366" }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1ebe5d")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#25D366")}
+            >
+              <WaSvg />
+              {t("Send Promo Message", "پروموشن میسج بھیجیں")}
+            </a>
           </div>
-        </Link>
 
-        {/* Inactive */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-all duration-200 min-h-[110px]">
-          <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center mb-3">
-            <AlertCircle className="w-4 h-4 text-red-500" />
+          {/* Card 3 — Order Reminder */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[170px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#fff8e1" }}>
+                  <Bell className="w-4 h-4" style={{ stroke: "#f9a825" }} />
+                </div>
+                <span className="text-[13px] font-medium text-gray-800 leading-tight">
+                  {t("Order Reminder", "آرڈر یاد دہانی")}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400 mb-3 leading-snug">
+                {t("Customers who forgot to order", "جو گاہک آرڈر بھول گئے")}
+              </p>
+              <p className="text-[28px] font-bold text-gray-900 leading-none mb-4">
+                {loading ? "—" : stats?.atRiskCustomers?.length ?? 0}
+              </p>
+            </div>
+            <a
+              href="https://wa.me/923000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-1.5 text-white font-bold text-[11px] rounded-xl py-2.5 px-3 min-h-[36px] transition-colors"
+              style={{ background: "#25D366" }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1ebe5d")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#25D366")}
+            >
+              <WaSvg />
+              {t("Remind Customer", "یاد دلائیں")}
+            </a>
           </div>
-          {loading ? (
-            <><Skeleton className="h-6 w-12 mb-1" /><Skeleton className="h-3 w-24 mb-2" /><Skeleton className="h-7 w-full" /></>
-          ) : (
-            <>
-              <p className="text-xl font-bold text-slate-800">{stats?.inactiveCount ?? 0}</p>
-              <p className="text-xs text-slate-500 mt-0.5 mb-2">{t("Inactive (30 days)", "غیر فعال")}</p>
-              <Link
-                href="/customers?filter=inactive"
-                className="block w-full text-center py-1.5 text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                {t("Send Reminder", "یاد دہانی")}
-              </Link>
-            </>
-          )}
+
+          {/* Card 4 — Inactive Customers */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 min-h-[170px] flex flex-col justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#fce4ec" }}>
+                  <UserMinus className="w-4 h-4" style={{ stroke: "#e91e63" }} />
+                </div>
+                <span className="text-[13px] font-medium text-gray-800 leading-tight">
+                  {t("Inactive Customers", "غیر فعال گاہک")}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-400 mb-3 leading-snug">
+                {t("Bought once, never returned", "صرف ایک بار خریداری کی")}
+              </p>
+              <p className="text-[28px] font-bold text-gray-900 leading-none mb-4">
+                {loading ? "—" : stats?.inactiveCount ?? 0}
+              </p>
+            </div>
+            <a
+              href="https://wa.me/923000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-1.5 text-white font-bold text-[11px] rounded-xl py-2.5 px-3 min-h-[36px] transition-colors"
+              style={{ background: "#25D366" }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1ebe5d")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#25D366")}
+            >
+              <WaSvg />
+              {t("Re-engage Now", "دوبارہ جوڑیں")}
+            </a>
+          </div>
         </div>
       </div>
 
